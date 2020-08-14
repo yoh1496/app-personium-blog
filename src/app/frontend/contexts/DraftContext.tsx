@@ -4,11 +4,10 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  createContext,
 } from 'react';
 import PropTypes from 'prop-types';
 import { OutputData, OutputBlockData } from '@editorjs/editorjs';
-import { useDraftContextIndexedDB } from './hooks/useDraftContextIndexedDB';
+import { useDraftContextIndexedDB } from '../hooks/useDraftContextIndexedDB';
 import * as UUID from 'uuid';
 import * as path from 'path';
 
@@ -33,20 +32,22 @@ interface ImageBlock extends OutputBlockData {
   type: string;
   data: {
     file: {
-      url: String;
-      key?: String;
+      url: string;
+      key?: string;
     };
-    caption?: String;
-    withBorder?: Boolean;
-    withBackground?: Boolean;
-    stretched?: Boolean;
+    caption?: string;
+    withBorder?: boolean;
+    withBackground?: boolean;
+    stretched?: boolean;
   };
 }
 
-const DraftContext = React.createContext<{
+type DraftContextType = {
   draft: OutputData;
-  setDraft: Function;
-}>({ draft: { blocks: [] }, setDraft: () => {} });
+  setDraft: React.Dispatch<React.SetStateAction<OutputData>>;
+};
+
+const DraftContext = React.createContext<null | DraftContextType>(null);
 
 function usePersoniumWebDAV(boxUrl: string, access_token: string) {
   if (!boxUrl.endsWith('/')) throw `boxUrl is malformed : "${boxUrl}"`;
@@ -98,20 +99,100 @@ function usePersoniumWebDAV(boxUrl: string, access_token: string) {
   };
 }
 
-export function DraftProvider(props: { children: PropTypes.ReactNodeLike }) {
-  const [draft, setDraft] = useState({
+export const DraftProvider: React.FC = ({ children }) => {
+  const [draft, setDraft] = useState<OutputData>({
     blocks: [],
   });
 
   return (
     <DraftContext.Provider value={{ draft, setDraft }}>
-      {props.children}
+      {children}
     </DraftContext.Provider>
   );
+};
+
+DraftProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+export function useDraftPublisher(boxUrl: string, access_token: string) {
+  const db = useDraftContextIndexedDB();
+
+  const { createCollection, checkExists, putFile } = usePersoniumWebDAV(
+    boxUrl,
+    access_token
+  );
+
+  const publishToWebdav = useCallback(
+    async (articleID: string) => {
+      const folderName = articleID;
+      const imageFolderName = `${articleID}/images`;
+
+      // check folder exist
+      const result = await checkExists(folderName);
+      if (result.status === 404) {
+        // create folder
+        const folderCreation = await createCollection(folderName);
+        // make `images` subdirectory
+        const folderCreation2 = await createCollection(imageFolderName);
+        console.log('folder created', folderCreation);
+      }
+      console.log(result);
+
+      // process blocks
+      const draftData = await db.drafts.limit(1).first();
+      if (!draftData) throw 'draftData not found';
+
+      console.log(draftData);
+
+      draftData.blocks = await Promise.all(
+        draftData.blocks.map(async block => {
+          if (block.type === 'image' && 'key' in block.data.file) {
+            console.log(block);
+            // : upload image
+            const content = await db.images.get(block.data.file.key);
+            if (!content) throw 'content is null';
+            const ext = content.file.name.split('.').pop();
+            const newName = `${UUID.v4()}.${ext}`;
+            const putResult = await putFile(
+              path.join(imageFolderName, newName),
+              content.file
+            );
+            // : rename URL
+            const newURL = path.join('images', newName);
+            return Object.assign({}, block, {
+              data: Object.assign({}, block.data, { file: { url: newURL } }),
+            });
+          }
+          return block;
+        })
+      );
+
+      // upload main content
+      console.log(JSON.stringify(draftData));
+      const draftFile = new File(
+        [JSON.stringify(draftData, null, 2)],
+        'content.json',
+        {
+          type: 'text/json',
+        }
+      );
+      console.log(
+        await putFile(path.join(folderName, 'content.json'), draftFile)
+      );
+    },
+    [db, checkExists, createCollection, putFile]
+  );
+
+  return { publishToWebdav };
 }
 
 export function useDraftContext() {
-  const { draft, setDraft } = useContext(DraftContext);
+  const draftContext = useContext(DraftContext);
+  if (!draftContext)
+    throw 'useDraftContext must be used in children of <DraftProvider>';
+
+  const { draft, setDraft } = draftContext;
   const db = useDraftContextIndexedDB();
 
   const revertURLFromKey = useCallback(
@@ -198,7 +279,7 @@ export function useDraftContext() {
     [db]
   );
 
-  const uploadByUrl = useCallback(async (url: String) => {
+  const uploadByUrl = useCallback(async (url: string) => {
     return {
       success: 1,
       file: {
@@ -207,77 +288,10 @@ export function useDraftContext() {
     };
   }, []);
 
-  const { createCollection, checkExists, putFile } = usePersoniumWebDAV(
-    'https://***.appdev.personium.io/articles/',
-    'access_token'
-  );
-
-  const publishToWebdav = useCallback(
-    async (url: String, access_token: String) => {
-      const folderName = '1234512345';
-      const imageFolderName = '1234512345/images';
-
-      // check folder exist
-      const result = await checkExists(folderName);
-      if (result.status === 404) {
-        // create folder
-        const folderCreation = await createCollection(folderName);
-        // make `images` subdirectory
-        const folderCreation2 = await createCollection(imageFolderName);
-        console.log('folder created', folderCreation);
-      }
-      console.log(result);
-
-      // process blocks
-      const draftData = await db.drafts.limit(1).first();
-      if (!draftData) throw 'draftData not found';
-
-      console.log(draftData);
-
-      draftData.blocks = await Promise.all(
-        draftData.blocks.map(async block => {
-          if (block.type === 'image' && 'key' in block.data.file) {
-            console.log(block);
-            // : upload image
-            const content = await db.images.get(block.data.file.key);
-            if (!content) throw 'content is null';
-            const ext = content.file.name.split('.').pop();
-            const newName = `${UUID.v4()}.${ext}`;
-            const putResult = await putFile(
-              path.join(imageFolderName, newName),
-              content.file
-            );
-            // : rename URL
-            const newURL = path.join('images', newName);
-            return Object.assign({}, block, {
-              data: Object.assign({}, block.data, { file: { url: newURL } }),
-            });
-          }
-          return block;
-        })
-      );
-
-      // upload main content
-      console.log(JSON.stringify(draftData));
-      const draftFile = new File(
-        [JSON.stringify(draftData, null, 2) as any],
-        'content.json',
-        {
-          type: 'text/json',
-        }
-      );
-      console.log(
-        await putFile(path.join(folderName, 'content.json'), draftFile)
-      );
-    },
-    [db]
-  );
-
   return {
     draftData: draft,
     updateDraft,
     uploadByFile,
     uploadByUrl,
-    publishToWebdav,
   };
 }

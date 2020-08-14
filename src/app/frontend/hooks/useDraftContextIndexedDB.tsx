@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import Dexie from "dexie";
-import { OutputBlockData } from "@editorjs/editorjs";
-import { ImageImage } from "material-ui/svg-icons";
+import { useState, useEffect } from 'react';
+import Dexie from 'dexie';
+import { OutputBlockData } from '@editorjs/editorjs';
+import { ImageImage } from 'material-ui/svg-icons';
 
 class DraftDatabase extends Dexie {
   images: Dexie.Table<IImageFile, number>;
@@ -10,12 +10,12 @@ class DraftDatabase extends Dexie {
   constructor(databaseName: string) {
     super(databaseName);
     this.version(1).stores({
-      drafts: "++id, time, blocks, version",
-      images: "++id, file",
+      drafts: '++id, time, blocks, version',
+      images: '++id, file',
     });
 
-    this.images = this.table("images");
-    this.drafts = this.table("drafts");
+    this.images = this.table('images');
+    this.drafts = this.table('drafts');
   }
 }
 
@@ -32,12 +32,12 @@ interface IImageFile {
 }
 
 export const useDraftContextIndexedDB = () => {
-  const [db] = useState(new DraftDatabase("drafts_database"));
+  const [db] = useState(new DraftDatabase('drafts_database'));
 
   useEffect(() => {
     db.version(1).stores({
-      drafts: "++id,blocks",
-      images: "++id,file",
+      drafts: '++id,blocks',
+      images: '++id,file',
     });
   }, [db]);
 
