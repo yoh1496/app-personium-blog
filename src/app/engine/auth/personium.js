@@ -7,7 +7,7 @@ exports.personium = (function() {
   var _ = require('underscore')._;
   var accInfo = require('acc_info').accInfo;
   var _appCellAdminInfo = accInfo.APP_CELL_ADMIN_INFO;
-  var _refererList = [accInfo.allowedOrigins];
+  var _refererList = accInfo.allowedOrigins;
 
   personium.getAppCellUrl = function() {
     return accInfo.APP_CELL_URL;

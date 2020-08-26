@@ -60,14 +60,8 @@ typings/
 # next.js build output
 .next
 
-src/bar/00_meta/00_manifest.json
-src/bar/00_meta/90_rootprops.xml
-src/assets/launch.json
-src/app/frontend/Constants/AppConstant.js
-src/app/engine/auth/acc_info.js
 
 dist
 build
-config.js
 
 !.gitkeep

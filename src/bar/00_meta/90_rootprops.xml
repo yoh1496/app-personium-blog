@@ -1,0 +1,35 @@
+<multistatus xmlns="DAV:">
+    <response>
+        <href>personium-localbox:/</href>
+        <propstat>
+            <prop>
+                <resourcetype>
+                    <collection/>
+                </resourcetype>
+            </prop>
+            <status>HTTP/1.1 200 OK</status>
+        </propstat>
+    </response>
+    <response>
+        <href>personium-localbox:/__template</href>
+        <propstat>
+            <prop>
+                <resourcetype>
+                    <collection/>
+                </resourcetype>
+            </prop>
+            <status>HTTP/1.1 200 OK</status>
+        </propstat>
+    </response>
+    <response>
+        <href>personium-localbox:/__template/index.html</href>
+        <propstat>
+            <prop>
+                <getcontentlength>555</getcontentlength>
+                <getcontenttype>text/html</getcontenttype>
+                <resourcetype/>
+            </prop>
+            <status>HTTP/1.1 200 OK</status>
+        </propstat>
+    </response>
+</multistatus>
