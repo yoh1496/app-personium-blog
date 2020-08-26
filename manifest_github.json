@@ -1,0 +1,14 @@
+{
+  "short_name": "PWA",
+  "name": "Personium PWA App",
+  "display": "standalone",
+  "start_url": "/app-personium-blog/",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    }
+  ],
+  "background_color": "#AB060F"
+}
