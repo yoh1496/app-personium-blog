@@ -2,12 +2,18 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import Editor from '@stfy/react-editor.js';
 import EditorJS from '@editorjs/editorjs';
-const EditorHeader = require('@editorjs/header');
-const EditorImage = require('@editorjs/image');
+
+const EditorHeader = require('@editorjs/header'); // eslint-disable-line
+const EditorImage = require('@editorjs/image'); // eslint-disable-line
+const EditorList = require('@editorjs/list'); // eslint-disable-line
+const EditorMarker = require('@editorjs/marker'); // eslint-disable-line
+const EditorDelimiter = require('@editorjs/delimiter'); // eslint-disable-line
+const EditorInlineCode = require('@editorjs/inline-code'); // eslint-disable-line
+const EditorWarning = require('@editorjs/warning'); // eslint-disable-line
 
 function useData() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Object | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<EditorJS.OutputData | null>(null);
 
   const updateData = useCallback(async () => {
@@ -28,17 +34,22 @@ function useData() {
 
   useEffect(() => {
     updateData();
-  }, []);
+  }, [updateData]);
 
   return { loading, error, data };
 }
 
-export const App: React.FC<{}> = () => {
+export const App: React.FC = () => {
   const { loading, error, data } = useData();
 
   const tools = useMemo(() => {
     return {
       header: EditorHeader,
+      warning: EditorWarning,
+      marker: EditorMarker,
+      list: EditorList,
+      delimiter: EditorDelimiter,
+      inlineCode: EditorInlineCode,
       image: EditorImage,
     };
   }, []);

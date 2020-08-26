@@ -10,6 +10,11 @@ import PropTypes from 'prop-types';
 import { useDraftContext, useDraftPublisher } from './contexts/DraftContext';
 const EditorHeader = require('@editorjs/header'); // eslint-disable-line
 const EditorImage = require('@editorjs/image'); // eslint-disable-line
+const EditorList = require('@editorjs/list'); // eslint-disable-line
+const EditorMarker = require('@editorjs/marker'); // eslint-disable-line
+const EditorDelimiter = require('@editorjs/delimiter'); // eslint-disable-line
+const EditorInlineCode = require('@editorjs/inline-code'); // eslint-disable-line
+const EditorWarning = require('@editorjs/warning'); // eslint-disable-line
 
 import EditorJS from '@editorjs/editorjs';
 import Editor from '@stfy/react-editor.js';
@@ -68,6 +73,28 @@ export const DraftEditor: React.FC<{ onEditFinished: () => void }> = ({
   const tools = useMemo(() => {
     return {
       header: EditorHeader,
+      warning: {
+        class: EditorWarning,
+        inlineToolbar: true,
+        shortcut: 'CMD+SHIFT+W',
+        config: {
+          titlePlaceholder: 'Title',
+          messagePlaceholder: 'Message',
+        },
+      },
+      marker: {
+        class: EditorMarker,
+        shortcut: 'CMD+SHIFT+M',
+      },
+      list: {
+        class: EditorList,
+        inlineToolbar: true,
+      },
+      delimiter: EditorDelimiter,
+      inlineCode: {
+        class: EditorInlineCode,
+        shortcut: 'CMD+SHIFT+M',
+      },
       image: {
         class: EditorImage,
         config: {
