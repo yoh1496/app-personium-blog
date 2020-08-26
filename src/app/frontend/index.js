@@ -10,10 +10,29 @@ import { PersoniumAppProvider } from './lib/AppContext';
 
 const history = createHashHistory();
 
+function getSWParam() {
+  if (window.origin === 'https://yoh1496.github.io') {
+    return {
+      path: '/app-personium-blog/service_worker.js',
+      scope: '/app-personium-blog/',
+    };
+  } else {
+    return {
+      path: '/__/service_worker.js',
+      scope: '/__/',
+    };
+  }
+}
 if ('serviceWorker' in navigator) {
+  const { path, scope } = getSWParam();
   navigator.serviceWorker
-    .register('/__/service_worker.js', { scope: '/__/' })
+    .register(path, { scope })
     .then(function(registration) {
+      // success
+      registration.onupdatefound = function() {
+        console.log('update found!');
+        registration.update();
+      };
       console.log(
         'ServiceWorker registration successful with scope: ',
         registration.scope

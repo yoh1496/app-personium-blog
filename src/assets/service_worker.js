@@ -1,5 +1,13 @@
 var CACHE_NAME = 'app-personium-blog';
-var urlsToCache = ['/__/front/app', '/__/public/main.bundle.js'];
+
+function getCacheList() {
+  if (window.origin === 'https://yoh1496.github.io') {
+    return ['/index.html', '/main.bundle.js'];
+  } else {
+    return ['/__/front/app', '/__/public/main.bundle.js'];
+  }
+}
+var urlsToCache = getCacheList();
 
 // install 処理
 self.addEventListener('install', function(event) {
