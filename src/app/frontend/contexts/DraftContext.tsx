@@ -96,6 +96,17 @@ function usePersoniumWebDAV(boxUrl: string, access_token: string) {
       },
       [boxUrl, defaultHeader]
     ),
+    downloadFile: useCallback(
+      async path => {
+        const targetURL = new URL(path, boxUrl);
+        const res = await fetch(targetURL.toString(), {
+          method: 'GET',
+          headers: defaultHeader,
+        });
+        return res;
+      },
+      [boxUrl, defaultHeader]
+    ),
   };
 }
 
@@ -115,13 +126,22 @@ DraftProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-export function useDraftPublisher(boxUrl: string, access_token: string) {
+type UseDraftPublisherResult = {
+  publishToWebdav: (articleID: string) => Promise<void>;
+};
+
+export function useDraftPublisher(
+  boxUrl: string,
+  access_token: string
+): UseDraftPublisherResult {
   const db = useDraftContextIndexedDB();
 
-  const { createCollection, checkExists, putFile } = usePersoniumWebDAV(
-    boxUrl,
-    access_token
-  );
+  const {
+    createCollection,
+    checkExists,
+    putFile,
+    downloadFile,
+  } = usePersoniumWebDAV(boxUrl, access_token);
 
   const publishToWebdav = useCallback(
     async (articleID: string) => {
@@ -180,8 +200,20 @@ export function useDraftPublisher(boxUrl: string, access_token: string) {
       console.log(
         await putFile(path.join(folderName, 'content.json'), draftFile)
       );
+
+      // upload entrypoint
+      const indexFile = await downloadFile('__template/index.html');
+
+      // download to memory
+      const buff = await indexFile.arrayBuffer();
+      console.log(
+        await putFile(
+          path.join(folderName, 'index.html'),
+          new File([buff], 'index.html', { type: 'text/html' })
+        )
+      );
     },
-    [db, checkExists, createCollection, putFile]
+    [db, checkExists, createCollection, putFile, downloadFile]
   );
 
   return { publishToWebdav };
@@ -239,7 +271,7 @@ export function useDraftContext() {
         blocks: welcomeBlocks,
       });
     }
-  }, [db]);
+  }, [db, revertURLFromKey, setDraft]);
 
   const updateDraft = useCallback(
     async newData => {
@@ -257,7 +289,7 @@ export function useDraftContext() {
     loadDraft().then(() => {
       console.log('loaded');
     });
-  }, []);
+  }, [loadDraft]);
 
   const uploadByFile = useCallback(
     async (file: File) => {

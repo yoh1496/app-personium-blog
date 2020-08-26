@@ -21,12 +21,14 @@ import {
   TextField,
   Paper,
   Box,
+  Typography,
 } from '@material-ui/core';
 import { useAppContext } from './lib/AppContext';
 
 import { useUserContext } from './lib/UserContext';
 import { useBoxContext } from './lib/BoxContext';
 import { useAuthWithIFrame } from './hooks/useAuthWithIFrame';
+import { BoxInstallView } from './BoxInstall';
 
 export const DraftEditor: React.FC<{ onEditFinished: () => void }> = ({
   onEditFinished,
@@ -237,13 +239,18 @@ UserAuth.propTypes = {
   onLogin: PropTypes.func.isRequired,
 };
 
-const DraftPublisher3: React.FC<{
-  onPublishFinished: () => void;
+const PublishArticleView: React.FC<{
+  onPublished: (articleUrl: string) => void;
   boxUrl: string;
   access_token: string;
-}> = ({ onPublishFinished, boxUrl, access_token }) => {
+}> = ({ onPublished, boxUrl, access_token }) => {
   const { publishToWebdav } = useDraftPublisher(boxUrl, access_token);
   const [articleId, setArticleId] = useState<string>('');
+  const articleURL = useMemo(() => `${boxUrl}${articleId}/index.html`, [
+    boxUrl,
+    articleId,
+  ]);
+  const refSending = useRef<boolean>(false);
 
   const handleChange = useCallback(
     e => {
@@ -254,64 +261,76 @@ const DraftPublisher3: React.FC<{
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      publishToWebdav(articleId);
-      onPublishFinished();
+      if (refSending.current === true) {
+        return false;
+      }
+      refSending.current = true;
+      publishToWebdav(articleId).then(() => {
+        onPublished(articleURL);
+        refSending.current = false;
+      });
       return false;
     },
-    [publishToWebdav, onPublishFinished, articleId]
+    [publishToWebdav, onPublished, articleId, articleURL]
   );
 
   return (
-    <Paper
-      component="form"
-      style={{ display: 'flex' }}
-      elevation={0}
-      onSubmit={handleSubmit}
-    >
-      <TextField
-        label="ArticleID"
-        variant="outlined"
-        style={{ flex: 1 }}
-        placeholder="1234567"
-        value={articleId}
-        onChange={handleChange}
-      />
-      <Button type="submit" style={{ marginLeft: 8 }}>
-        Submit
-      </Button>
-      <div>The article will be saved: {`${boxUrl}${articleId}/index.html`}</div>
-    </Paper>
+    <>
+      <Paper
+        component="form"
+        style={{ display: 'flex' }}
+        elevation={0}
+        onSubmit={handleSubmit}
+      >
+        <TextField
+          label="ArticleID"
+          variant="outlined"
+          style={{ flex: 1 }}
+          placeholder="1234567"
+          value={articleId}
+          onChange={handleChange}
+        />
+        <Button type="submit" style={{ marginLeft: 8 }}>
+          Submit
+        </Button>
+      </Paper>
+      <div>The article will be saved: {articleURL}</div>
+    </>
   );
 };
 
-DraftPublisher3.propTypes = {
-  onPublishFinished: PropTypes.func.isRequired,
+PublishArticleView.propTypes = {
+  onPublished: PropTypes.func.isRequired,
   boxUrl: PropTypes.string.isRequired,
   access_token: PropTypes.string.isRequired,
 };
-const DraftPublisher2: React.FC<{ onPublishFinished: () => void }> = ({
-  onPublishFinished,
-}) => {
+
+const BoxConfirmation: React.FC = () => {
   const { appCellUrl } = useAppContext();
-  const { auth } = useUserContext(appCellUrl);
-  const { loading, error, boxUrl } = useBoxContext();
+  const { cellUrl, auth } = useUserContext(appCellUrl);
+  const { loading, error, boxUrl, refreshBoxUrl } = useBoxContext();
+
+  const handleInstalled = useCallback(() => {
+    if (!cellUrl) throw 'cellUrl is not set';
+    if (!auth) throw 'not authorized';
+
+    refreshBoxUrl(cellUrl, auth?.access_token);
+  }, [refreshBoxUrl, cellUrl, auth]);
 
   if (loading) return <div>Loading boxUrl...</div>;
   if (error) return <div> error happened: {error}</div>;
 
   if (!auth) throw 'not authorized';
-  if (!boxUrl) throw 'boxUrl is null';
 
-  return (
-    <DraftPublisher3
-      onPublishFinished={onPublishFinished}
-      access_token={auth?.access_token}
-      boxUrl={boxUrl}
-    />
-  );
+  if (!boxUrl) {
+    // box installation
+    return <BoxInstallView onInstalled={handleInstalled} />;
+  }
+
+  return <div>Box is intalled: {boxUrl}</div>;
 };
 
-DraftPublisher2.propTypes = {
+BoxConfirmation.propTypes = {
   onPublishFinished: PropTypes.func.isRequired,
 };
 
@@ -321,6 +340,8 @@ const DraftPublisher: React.FC<{ onPublishFinished: () => void }> = ({
   const { appCellUrl } = useAppContext();
   const { cellUrl, auth } = useUserContext(appCellUrl);
   const [userCell, setUserCell] = useState<null | string>(cellUrl);
+  const { boxUrl } = useBoxContext();
+  const [articleUrl, setArticleUrl] = useState<null | string>(null);
 
   const handleEnterCell = useCallback(
     cellUrl => {
@@ -332,6 +353,13 @@ const DraftPublisher: React.FC<{ onPublishFinished: () => void }> = ({
   const handleLogin = useCallback(() => {
     console.log('logged in ');
   }, []);
+
+  const handlePublished = useCallback(
+    (articleUrl: string) => {
+      setArticleUrl(articleUrl);
+    },
+    [setArticleUrl]
+  );
 
   if (!userCell) {
     // input cell url
@@ -372,7 +400,38 @@ const DraftPublisher: React.FC<{ onPublishFinished: () => void }> = ({
         flexDirection="column"
         justifyContent="center"
       >
-        <DraftPublisher2 onPublishFinished={onPublishFinished} />
+        {(() => {
+          if (!articleUrl) {
+            if (!boxUrl) return <BoxConfirmation />;
+            else
+              return (
+                <PublishArticleView
+                  onPublished={handlePublished}
+                  boxUrl={boxUrl}
+                  access_token={auth.access_token}
+                />
+              );
+          }
+          return (
+            <Paper
+              component="form"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignContent: 'center',
+              }}
+              elevation={0}
+            >
+              <Typography variant="h6">Your article is published</Typography>
+              <div>
+                <a href={articleUrl}>{articleUrl}</a>
+              </div>
+              <Typography variant="body1">
+                You can share the article with this URL.
+              </Typography>
+            </Paper>
+          );
+        })()}
       </Box>
     </Container>
   );
