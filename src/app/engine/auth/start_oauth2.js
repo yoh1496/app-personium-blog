@@ -31,7 +31,9 @@ function init(request) {
 function createCookie(state) {
   var shaObj = new jsSHA(state, 'ASCII');
   var hash = shaObj.getHash('SHA-512', 'HEX');
-  var cookieStr = ['personium', '=', hash].join('');
+  var cookieStr = ['personium', '=', hash, '; Secure', '; SameSite=None'].join(
+    ''
+  );
 
   return cookieStr;
 }

@@ -2,7 +2,7 @@ exports.accInfo = (function() {
   /*
    * Begin of your Personium app configurations
    */
-  var appCellUrl = 'https://app-personium-blog.appdev.personium.io/'; // for example: https://stg-demo.personium.io/appCellName/ or https://appCellName.stg-demo.personium.io/
+  var appCellUrl = 'https://app-ishiguro-02.appdev.personium.io/'; // for example: https://stg-demo.personium.io/appCellName/ or https://appCellName.stg-demo.personium.io/
   var appUserId = '***';
   var appUserPass = '***';
   var allowedOrigins = [
